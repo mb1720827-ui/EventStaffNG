@@ -1393,3 +1393,249 @@ button:hover,
     grid-template-columns: 1fr;
   }
 }
+
+/* ---- Professional profile & marketplace connectivity ---- */
+
+.profile-completion {
+  margin-top: 16px;
+}
+
+.profile-completion-bar {
+  height: 10px;
+  width: 100%;
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.profile-completion-fill {
+  height: 100%;
+  background: linear-gradient(90, #10b845, #059669);
+  transition: width 0.3s ease;
+}
+
+.profile-completion .mini-label {
+  font-weight: 700;
+  color: #334155;
+}
+
+.stepper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 22px 0;
+}
+
+.step-tab {
+  flex: 1 1 160px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(255, 255, 255, 0.9);
+  color: #334155;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.step-tab.active {
+  background: linear-gradient(135deg, #f97316, #ef4444);
+  color: white;
+  border-color: transparent;
+}
+
+.step-tab.done {
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #065f46;
+}
+
+.stepper-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.upload-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.avatar-preview {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  font-weight: 800;
+  font-size: 1.5rem;
+}
+
+.form-help {
+  color: #64748b;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  margin: 4px 0 0;
+}
+
+.form-message.error {
+  color: #b91c1c;
+}
+
+.regenerate-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.recap-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.recap-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(248, 250, 252, 0.9);
+  border-radius: 10px;
+  font-size: 0.85rem;
+}
+
+.total-output {
+  font-weight: 700;
+  color: #111827;
+  background: rgba(249, 115, 22, 0.08);
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  display: block;
+}
+
+.budget-summary .list-row {
+  font-size: 0.9rem;
+}
+
+.budget-summary strong {
+  color: #111827;
+}
+
+.include-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.match-factors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.factor-chip {
+  display: inline-flex;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(249, 115, 22, 0.08);
+  color: #b45309;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.match-factors-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.match-factor-item {
+  display: grid;
+  gap: 6px;
+}
+
+.match-factor-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.match-factor-value {
+  font-weight: 700;
+  color: #111827;
+}
+
+.match-factor-bar {
+  height: 8px;
+  width: 100%;
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.match-factor-fill {
+  height: 100%;
+  background: linear-gradient(90, #3b82f6, #06b6d4);
+  border-radius: 999px;
+}
+
+.match-score.big {
+  font-size: 2.2rem;
+  background: rgba(249, 115, 22, 0.08);
+  color: #b45309;
+  padding: 0.8rem 1.2rem;
+  border-radius: 12px;
+  font-weight: 800;
+}
+
+.verification-badge.small {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.72rem;
+}
+
+.status.danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+}
+
+.job-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.requirement-header h3 {
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .stepper,
+  .profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stepper {
+    flex-direction: column;
+  }
+
+  .match-foot {
+    grid-template-columns: 1fr;
+  }
+}
+

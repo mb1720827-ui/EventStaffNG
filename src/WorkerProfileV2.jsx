@@ -21,7 +21,10 @@ const STEPS = [
 const blankExperience = { title: '', employer: '', startDate: '', endDate: '', isCurrent: false, description: '' }
 
 export default function WorkerProfileV2({ session, profile, Workspace }) {
-  const [step, setStep] = useState(0)
+  const [step, setStep] = useState(() => {
+    const saved = localStorage.getItem(`worker_profile_step_${session?.user?.id}`)
+    return saved ? Number(saved) : 0
+  })
   const [data, setData] = useState({
     fullName: profile?.full_name || '', phone: profile?.phone || '',
     avatar: profile?.avatar_url || '', state: profile?.state || '',
@@ -38,19 +41,30 @@ export default function WorkerProfileV2({ session, profile, Workspace }) {
   })
   const [docItems, setDocItems] = useState([])
   const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const fileInput = useRef(null)
+  const saveTimeout = useRef(null)
 
   const update = (field) => (event) => {
     const { value, type, checked } = event.target
     setData((current) => ({ ...current, [field]: type === 'checkbox' ? checked : value }))
+    queueAutosave()
   }
-  const updateList = (field) => (value) => setData((current) => ({ ...current, [field]: value }))
+  const updateList = (field) => (value) => {
+    setData((current) => ({ ...current, [field]: value }))
+    queueAutosave()
+  }
   const listToggle = (field, value) => {
     setData((current) => {
       const list = current[field] || []
       return { ...current, [field]: list.includes(value) ? list.filter((item) => item !== value) : [...list, value] }
     })
+    queueAutosave()
+  }
+  const queueAutosave = () => {
+    if (saveTimeout.current) clearTimeout(saveTimeout.current)
+    saveTimeout.current = setTimeout(() => { save(new Event('submit')) }, 1500)
   }
 
   useEffect(() => {
@@ -94,10 +108,26 @@ export default function WorkerProfileV2({ session, profile, Workspace }) {
         hourlyRatePref: prefs.hourly_rate || '', dailyRatePref: prefs.daily_rate || '',
       }))
       setDocItems(mergeDocs(profession, docsRes.data || []))
-      setLoading(false)
+       setLoading(false)
+       setStep((saved) => {
+        const target = firstIncompleteStep(saved)
+        localStorage.setItem(`worker_profile_step_${session.user.id}`, String(target))
+        return target
+      })
     }
     load()
   }, [session])
+
+  const firstIncompleteStep = (from) => {
+    let idx = from
+    while (idx < STEPS.length && computeStepDone(STEPS[idx].key, data, docItems)) idx++
+    return Math.min(idx, STEPS.length - 1)
+  }
+
+  useEffect(() => {
+    if (!session) return
+    localStorage.setItem(`worker_profile_step_${session.user.id}`, String(step))
+  }, [step, session])
 
   // Re-merge required documents whenever the profession changes.
   useEffect(() => {
@@ -137,7 +167,8 @@ export default function WorkerProfileV2({ session, profile, Workspace }) {
 
   const save = async (event) => {
     if (event) event.preventDefault()
-    if (!session) return
+    if (!session || saving) return
+    setSaving(true)
     setLoading(true)
     setMessage('Saving professional profile...')
 
@@ -221,10 +252,30 @@ export default function WorkerProfileV2({ session, profile, Workspace }) {
     const msg = workerError?.message || prefError?.message || 'Professional profile saved.'
     setMessage(msg)
     setLoading(false)
+    setSaving(false)
   }
 
-  const goNext = async () => { await save(new Event('submit')); setStep((s) => Math.min(s + 1, STEPS.length - 1)) }
-  const goBack = () => setStep((s) => Math.max(s - 1, 0))
+  const goNext = async (event) => {
+    if (event && event.preventDefault) event.preventDefault()
+    if (saving) return
+    await save(event)
+    setStep((s) => {
+      const next = s + 1
+      const target = firstIncompleteStep(next)
+      localStorage.setItem(`worker_profile_step_${session.user.id}`, String(target))
+      return Math.min(target, STEPS.length - 1)
+    })
+  }
+  const goBack = () => setStep((s) => {
+    const prev = Math.max(s - 1, 0)
+    localStorage.setItem(`worker_profile_step_${session.user.id}`, String(prev))
+    return prev
+  })
+  const jumpToStep = (index) => {
+    const target = firstIncompleteStep(index)
+    setStep(target)
+    localStorage.setItem(`worker_profile_step_${session.user.id}`, String(target))
+  }
   if (!session) return null
 
   const current = STEPS[step]
@@ -242,7 +293,7 @@ export default function WorkerProfileV2({ session, profile, Workspace }) {
       </div>
     </section>
 
-    <div className="stepper">      {STEPS.map((item, index) => <button type="button" key={item.key} className={`step-tab ${index === step ? 'active' : ''} ${computeStepDone(item.key, data, docItems) ? 'done' : ''}`} onClick={() => setStep(index)}>{index + 1} {item.label}</button>)}</div>
+    <div className="stepper">      {STEPS.map((item, index) => <button type="button" key={item.key} className={`step-tab ${index === step ? 'active' : ''} ${computeStepDone(item.key, data, docItems) ? 'done' : ''}`} onClick={() => jumpToStep(index)}>{index + 1} {item.label}</button>)}</div>
 
     <form className="event-form wide-form" onSubmit={save}>
       {current.key === 'personal' && renderPersonal()}

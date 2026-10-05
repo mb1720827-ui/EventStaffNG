@@ -1,11 +1,11 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import { Gate } from './components/Workspace'
+import { Gate, RoleRedirect } from './components/Workspace'
 import { Spinner } from './components/ui'
 import { SessionProvider } from './lib/session'
 import Home from './pages/public/Home'
 import { About, Categories, Contact, HowItWorks, NotFound, Pricing } from './pages/public/InfoPages'
-import { GetStarted, SignIn, SignUp } from './pages/public/Auth'
+import { GetStarted, ResetPassword, SignIn, SignUp } from './pages/public/Auth'
 import './App.css'
 
 // Signed-in areas load on demand so the marketing site stays light.
@@ -24,6 +24,8 @@ const JobDetail = lazy(() => import('./pages/worker/JobDetail'))
 const ProfileOverview = lazy(() => import('./pages/worker/ProfileOverview'))
 const ProfileBuilder = lazy(() => import('./pages/worker/ProfileBuilder'))
 const Notifications = lazy(() => import('./pages/Notifications'))
+const Account = lazy(() => import('./pages/Account'))
+const Reviews = lazy(() => import('./pages/worker/Reviews'))
 const named = (load, name) => lazy(() => load().then((m) => ({ default: m[name] })))
 const activity = () => import('./pages/worker/Activity')
 const adminPages = () => import('./pages/admin/Admin')
@@ -55,6 +57,9 @@ export default function App() {
         <Route path="/select-role" element={<Navigate to="/get-started" replace />} />
         <Route path="/sign-in" element={<SignIn />} />
         <Route path="/sign-up" element={<SignUp />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/notifications" element={<RoleRedirect path="notifications" />} />
+        <Route path="/dashboard" element={<RoleRedirect path="dashboard" />} />
 
         <Route path="/hirer/dashboard" element={hirer(<HirerDashboard />)} />
         <Route path="/hirer/post-event" element={hirer(<PostEvent />)} />
@@ -78,6 +83,8 @@ export default function App() {
         <Route path="/worker/upcoming-jobs" element={<Navigate to="/worker/bookings" replace />} />
         <Route path="/worker/earnings" element={worker(<Earnings />)} />
         <Route path="/worker/notifications" element={worker(<Notifications role="worker" />)} />
+        <Route path="/worker/reviews" element={worker(<Reviews />)} />
+        <Route path="/worker/account" element={worker(<Account role="worker" />)} />
         <Route path="/worker/profile" element={worker(<ProfileOverview />)} />
         <Route path="/worker/profile/edit" element={worker(<ProfileBuilder />)} />
         <Route path="/worker/profile/complete" element={<Navigate to="/worker/profile" replace />} />

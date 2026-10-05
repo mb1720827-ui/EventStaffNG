@@ -1,6 +1,7 @@
 import { Navigate, NavLink } from 'react-router-dom'
+import { RatingTag } from '../../components/Ratings'
 import Workspace from '../../components/Workspace'
-import { Avatar, Badge, CategoryIcon, Icon, PageHeader, Progress, Spinner, Stars, StatusBadge, VerifiedBadge } from '../../components/ui'
+import { Avatar, Badge, CategoryIcon, Icon, PageHeader, Progress, Spinner, StatusBadge, VerifiedBadge } from '../../components/ui'
 import { DOCUMENT_STATUS } from '../../lib/constants'
 import { formatDate, money } from '../../lib/format'
 import { requiredDocsFor } from '../../lib/matching'
@@ -53,7 +54,8 @@ export default function ProfileOverview() {
           <div className="profile-hero-main">
             <div className="row wrap-gap"><h1>{profile?.full_name}</h1>{staff?.is_verified && <VerifiedBadge />}</div>
             {wp.primary_profession && <p className="staff-role lg"><CategoryIcon category={wp.primary_profession} size={16} />{wp.primary_profession}</p>}
-            <div className="meta"><Stars value={staff?.rating} count={staff?.review_count} /><span><Icon name="MapPin" size={14} />{[wp.area, wp.state].filter(Boolean).join(', ')}</span><span><Icon name="Briefcase" size={14} />{wp.years_experience || 0} yrs</span></div>
+            <RatingTag rating={staff?.rating} count={staff?.review_count} />
+            <div className="meta"><span><Icon name="MapPin" size={14} />{[wp.area, wp.state].filter(Boolean).join(', ')}</span><span><Icon name="Briefcase" size={14} />{wp.years_experience || 0} yrs</span></div>
             <p>{wp.bio}</p>
             {skills.length > 0 && <div className="chip-row">{skills.map((s) => <span className="chip static" key={s}>{s}</span>)}</div>}
           </div>
@@ -78,6 +80,11 @@ export default function ProfileOverview() {
       </div>
 
       <aside className="stack">
+        <section className="card card-pad">
+          <h2 className="card-title">Ratings</h2>
+          <RatingTag rating={staff?.rating} count={staff?.review_count} />
+          <NavLink to="/worker/reviews" className="link small">See rating history & reply to reviews<Icon name="ArrowRight" size={14} /></NavLink>
+        </section>
         <section className="card card-pad">
           <Progress value={wp.profile_completion || 0} label="Profile strength" />
           <p className="muted small">Complete profiles get up to 3× more matches.</p>

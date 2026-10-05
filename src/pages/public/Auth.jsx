@@ -153,7 +153,7 @@ export function SignIn() {
 
   const reset = async () => {
     if (!form.email) return setStatus({ busy: false, error: 'Enter your email first, then click "Forgot password".', info: '' })
-    const { error } = await supabase.auth.resetPasswordForEmail(form.email, { redirectTo: `${window.location.origin}/sign-in` })
+    const { error } = await supabase.auth.resetPasswordForEmail(form.email, { redirectTo: `${window.location.origin}/reset-password` })
     setStatus({ busy: false, error: error?.message || '', info: error ? '' : `Password reset link sent to ${form.email}.` })
   }
 
@@ -169,5 +169,42 @@ export function SignIn() {
       <button className="btn btn-primary btn-lg btn-block" disabled={status.busy}>{status.busy ? 'Signing in…' : 'Sign in'}</button>
     </form>
     <p className="auth-switch">New to EventStaff NG? <NavLink to="/get-started">Create an account</NavLink></p>
+  </AuthShell>
+}
+
+// Landing page for the "reset your password" email link. Supabase signs the
+// visitor in from the link; here they choose the new password.
+export function ResetPassword() {
+  const navigate = useNavigate()
+  const { session, profile, initialized } = useSession()
+  const [form, setForm] = useState({ password: '', confirm: '' })
+  const [status, setStatus] = useState({ busy: false, error: '', done: false })
+
+  const submit = async (event) => {
+    event.preventDefault()
+    if (form.password !== form.confirm) return setStatus({ busy: false, error: 'The passwords don\'t match.', done: false })
+    setStatus({ busy: true, error: '', done: false })
+    const { error } = await supabase.auth.updateUser({ password: form.password })
+    if (error) return setStatus({ busy: false, error: error.message, done: false })
+    setStatus({ busy: false, error: '', done: true })
+    setTimeout(() => navigate(destinationFor(profile?.role || 'hirer', ''), { replace: true }), 1500)
+  }
+
+  return <AuthShell aside={<AsideCopy role={profile?.role === 'worker' ? 'worker' : 'hirer'} />}>
+    <span className="eyebrow">Account recovery</span>
+    <h1>Choose a new password</h1>
+    {!initialized ? <p className="muted">Checking your reset link…</p>
+      : !session ? <>
+        <Alert tone="warning">This reset link is invalid or has expired. Request a new one from the sign-in page.</Alert>
+        <NavLink to="/sign-in" className="btn btn-primary btn-block">Back to sign in</NavLink>
+      </>
+      : status.done ? <Alert tone="success">Password updated — taking you to your dashboard…</Alert>
+      : <form className="form" onSubmit={submit}>
+        <p className="muted">For {session.user.email}</p>
+        <Field label="New password" hint="At least 8 characters."><input type="password" minLength={8} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required autoComplete="new-password" /></Field>
+        <Field label="Confirm new password"><input type="password" minLength={8} value={form.confirm} onChange={(e) => setForm({ ...form, confirm: e.target.value })} required autoComplete="new-password" /></Field>
+        <Alert tone="danger">{status.error}</Alert>
+        <button className="btn btn-primary btn-lg btn-block" disabled={status.busy}>{status.busy ? 'Saving…' : 'Save new password'}</button>
+      </form>}
   </AuthShell>
 }

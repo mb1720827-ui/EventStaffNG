@@ -567,20 +567,7 @@ values
   ('Ushers / Protocol Officers', '🤝', 'Guest flow experts and protocol specialists for formal and high-profile events.', 55)
 on conflict (title) do nothing;
 
-insert into public.staff_profiles (id, name, category, location, state, summary, rating, review_count, match_score, years_experience, is_verified, is_available, verification_status)
-values
-  ('11111111-1111-4111-8111-111111111111', 'Aisha Bello', 'Servers', 'Abuja', 'FCT', 'Available on your event date. Verified identity. Three years experience.', 4.9, 38, 98, 3, true, true, 'approved'),
-  ('22222222-2222-4222-8222-222222222222', 'Musa Danjuma', 'Bodyguards / Security', 'Gwarinpa', 'FCT', 'Background verified. Event escort experience. Fast response.', 4.8, 29, 95, 6, true, true, 'approved'),
-  ('33333333-3333-4333-8333-333333333333', 'Kemi Okafor', 'Photographers / Videographers', 'Lagos', 'Lagos', 'Wedding coverage specialist with a premium editing portfolio.', 4.9, 44, 91, 5, true, true, 'approved'),
-  ('44444444-4444-4444-8444-444444444444', 'Tunde Akin', 'Emcees / Hosts', 'Lekki', 'Lagos', 'Corporate and wedding MC with great audience engagement.', 4.7, 21, 88, 4, true, true, 'approved')
-on conflict (id) do nothing;
-
-insert into public.job_posts (id, title, category, location, event_date, start_time, end_time, workers_required, budget, description, status)
-values
-  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'Wedding Reception', 'Servers', 'Abuja', '2026-10-18', '15:00', '23:00', 10, 25000, 'Polished banquet service for a verified wedding client.', 'open'),
-  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'Corporate Gala', 'Ushers / Protocol Officers', 'Lagos', '2026-10-22', '18:00', '23:30', 4, 18000, 'Guest welcome and protocol support for a corporate gala.', 'open'),
-  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'Private Birthday Event', 'Chefs & Cooks', 'Ikoyi', '2026-10-29', '13:00', '19:00', 2, 30000, 'Private dining support for a verified high-profile client.', 'open')
-on conflict (id) do nothing;
+-- No demo professionals or jobs are seeded: signed-in areas show only real data.
 
 -- ============================================================================
 -- EVENTSTAFF NG — MARKETPLACE CONNECTIVITY & PROFESSIONAL PROFILE ENHANCEMENTS

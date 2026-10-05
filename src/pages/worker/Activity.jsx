@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { NavLink, useSearchParams } from 'react-router-dom'
 import Workspace from '../../components/Workspace'
-import { Alert, CategoryIcon, EmptyState, Icon, PageHeader, Spinner, Stat, StatusBadge, Tabs } from '../../components/ui'
+import { Alert, Badge, CategoryIcon, EmptyState, Field, Icon, Modal, PageHeader, Spinner, Stat, StatusBadge, Tabs } from '../../components/ui'
 import { APPLICATION_STATUS, BOOKING_STATUS, PAYMENT_STATUS } from '../../lib/constants'
 import { formatDate, isPast, money, timeAgo, timeRange } from '../../lib/format'
 import { useSession } from '../../lib/session'
@@ -102,27 +103,78 @@ export function WorkerBookings() {
   </Workspace>
 }
 
+function DisputeModal({ payment, onClose, onDone }) {
+  const { session } = useSession()
+  const [reason, setReason] = useState('Payout not received')
+  const [details, setDetails] = useState('')
+  const [status, setStatus] = useState({ busy: false, error: '' })
+  if (!payment) return null
+  const submit = async (event) => {
+    event.preventDefault()
+    setStatus({ busy: true, error: '' })
+    const { error } = await supabase.from('disputes').insert({ booking_id: payment.booking_id, opened_by: session.user.id, reason: details.trim() ? `${reason}: ${details.trim()}` : reason })
+    if (error) return setStatus({ busy: false, error: error.message })
+    onDone()
+  }
+  return <Modal open title="Report a payment problem" onClose={onClose}>
+    <form className="form" onSubmit={submit}>
+      <p className="muted">{payment.bookings?.events?.event_name} · {money(payment.amount)}</p>
+      <Field label="What's wrong?"><select value={reason} onChange={(e) => setReason(e.target.value)}>{['Payout not received', 'Wrong amount received', 'Job was completed but not marked complete', 'Other'].map((item) => <option key={item}>{item}</option>)}</select></Field>
+      <Field label="Details" hint="Include your bank, the date you expected payment, and any reference."><textarea rows="4" value={details} onChange={(e) => setDetails(e.target.value)} /></Field>
+      <Alert tone="danger">{status.error}</Alert>
+      <div className="modal-actions"><button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-primary" disabled={status.busy}>{status.busy ? 'Sending…' : 'Send to support'}</button></div>
+    </form>
+  </Modal>
+}
+
 export function Earnings() {
   const { session } = useSession()
-  const { data, loading } = useLoader(async () => must(await supabase.from('payments').select('*, bookings(events(event_name,event_date))').eq('payee_id', session.user.id).order('created_at', { ascending: false })), [session])
-  const payments = data || []
+  const [disputing, setDisputing] = useState(null)
+  const [message, setMessage] = useState('')
+  const { data, loading, reload } = useLoader(async () => {
+    const [payments, disputes] = await Promise.all([
+      supabase.from('payments').select('*, bookings(events(event_name,event_date))').eq('payee_id', session.user.id).order('created_at', { ascending: false }),
+      supabase.from('disputes').select('booking_id,status').eq('opened_by', session.user.id),
+    ])
+    return { payments: must(payments), disputes: new Map((disputes.data || []).map((d) => [d.booking_id, d.status])) }
+  }, [session])
+  const payments = data?.payments || []
   const sum = (status) => payments.filter((p) => p.status === status).reduce((total, p) => total + Number(p.amount), 0)
   const thisMonth = payments.filter((p) => p.status === 'paid' && p.paid_at && new Date(p.paid_at).getMonth() === new Date().getMonth()).reduce((total, p) => total + Number(p.amount), 0)
+  const awaitingConfirm = payments.filter((p) => p.status === 'paid' && !p.received_at)
+
+  const confirmReceived = async (payment) => {
+    const { error } = await supabase.from('payments').update({ received_at: new Date().toISOString() }).eq('id', payment.id)
+    setMessage(error ? `danger:${error.message}` : 'success:Thanks — payout confirmed.')
+    reload()
+  }
+  const [tone, text] = message ? message.split(/:(.*)/s) : []
 
   return <Workspace role="worker">
-    <PageHeader eyebrow="Earnings" title="Your earnings" description="You keep 100% of your agreed rate. Payouts are released after the hirer marks a job complete." />
+    <PageHeader eyebrow="Earnings" title="Your earnings" description="You keep 100% of your agreed rate. When the client confirms the job is complete your payout is queued; once it's sent, confirm you received it." />
     <div className="stat-grid three">
       <Stat icon="Wallet" label="Total paid out" value={money(sum('paid'))} tone="success" />
       <Stat icon="Hourglass" label="Pending payout" value={money(sum('pending'))} tone="accent" />
       <Stat icon="TrendingUp" label="Paid this month" value={money(thisMonth)} tone="info" />
     </div>
-    {loading ? <Spinner /> : payments.length ? <div className="card table-card">
-      {payments.map((p) => <div className="booking-row" key={p.id}>
-        <span className="stat-icon tone-success"><Icon name="Banknote" size={18} /></span>
-        <div className="booking-main"><strong>{p.bookings?.events?.event_name || 'Event booking'}</strong><div className="meta"><span>{formatDate(p.bookings?.events?.event_date)}</span>{p.paid_at && <span>Paid {formatDate(p.paid_at)}</span>}</div></div>
-        <div className="booking-amount"><strong>{money(p.amount)}</strong></div>
-        <div className="booking-actions"><StatusBadge map={PAYMENT_STATUS} value={p.status} /></div>
-      </div>)}
+    <Alert tone={tone} onClose={() => setMessage('')}>{text}</Alert>
+    {awaitingConfirm.length > 0 && <Alert tone="warning">{awaitingConfirm.length} payout{awaitingConfirm.length === 1 ? ' has' : 's have'} been sent. Please confirm once {awaitingConfirm.length === 1 ? 'it reaches' : 'they reach'} your account, or report a problem.</Alert>}
+    {loading && !data ? <Spinner /> : payments.length ? <div className="card table-card">
+      {payments.map((p) => {
+        const dispute = data.disputes.get(p.booking_id)
+        return <div className="booking-row" key={p.id}>
+          <span className="stat-icon tone-success"><Icon name="Banknote" size={18} /></span>
+          <div className="booking-main"><strong>{p.bookings?.events?.event_name || 'Event booking'}</strong><div className="meta"><span>{formatDate(p.bookings?.events?.event_date)}</span>{p.paid_at && <span>Sent {formatDate(p.paid_at)}</span>}{p.received_at && <span className="ok"><Icon name="CircleCheck" size={13} />Received {formatDate(p.received_at)}</span>}</div></div>
+          <div className="booking-amount"><strong>{money(p.amount)}</strong></div>
+          <div className="booking-actions">
+            <StatusBadge map={PAYMENT_STATUS} value={p.status} />
+            {dispute && <Badge tone="warning" icon="LifeBuoy">Support case {dispute === 'resolved' || dispute === 'closed' ? 'closed' : 'open'}</Badge>}
+            {p.status === 'paid' && !p.received_at && <button className="btn btn-primary btn-sm" onClick={() => confirmReceived(p)}><Icon name="Check" size={15} />I received it</button>}
+            {!dispute && !p.received_at && <button className="btn btn-ghost btn-sm" onClick={() => setDisputing(p)}>Report a problem</button>}
+          </div>
+        </div>
+      })}
     </div> : <EmptyState icon="PiggyBank" title="No earnings yet" action={<NavLink to="/worker/jobs" className="btn btn-primary">Find your first job</NavLink>}>Completed bookings and payouts will be listed here.</EmptyState>}
+    <DisputeModal payment={disputing} onClose={() => setDisputing(null)} onDone={() => { setDisputing(null); setMessage("success:Your report is with our support team. We'll be in touch."); reload() }} />
   </Workspace>
 }

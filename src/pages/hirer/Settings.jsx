@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
+import { ChangePassword, NotificationSettings } from '../../components/AccountSettings'
 import Workspace from '../../components/Workspace'
 import { Alert, Badge, Field, Icon, PageHeader, Spinner } from '../../components/ui'
 import { HIRER_PLANS, LAUNCH_STATES, ORGANIZATION_TYPES, STATE_AREAS } from '../../lib/constants'
@@ -41,7 +42,7 @@ export default function Settings() {
   }
 
   return <Workspace role="hirer">
-    <PageHeader eyebrow="Account" title="Organisation & plan" />
+    <PageHeader eyebrow="Account" title="Account & plan" />
     <div className="profile-layout">
       <form className="card card-pad form" onSubmit={save}>
         <h2 className="card-title">Your details</h2>
@@ -72,6 +73,10 @@ export default function Settings() {
           <NavLink to="/pricing" className="link small">Compare plans</NavLink>
         </section>
       </aside>
+    </div>
+    <div className="settings-grid">
+      <ChangePassword />
+      <NotificationSettings />
     </div>
   </Workspace>
 }

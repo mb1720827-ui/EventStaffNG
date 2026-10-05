@@ -24,8 +24,32 @@ In the Supabase Dashboard SQL Editor, run these in order (both are safe to re-ru
 
 1. [`supabase/schema.sql`](supabase/schema.sql) — tables, seed categories, base policies.
 2. [`supabase/migrations/20261005_marketplace_loop.sql`](supabase/migrations/20261005_marketplace_loop.sql) — enables RLS on every table, the hire → book → complete → payout → review loop, admin-only verification, and server-side notifications.
+3. [`supabase/migrations/20261010_webapp_ratings_lifecycle.sql`](supabase/migrations/20261010_webapp_ratings_lifecycle.sql) — removes demo professionals/jobs, auto-closes applications when events start, review replies and context, payout confirmation and disputes, push subscriptions, and realtime on notifications.
+
+Optional: enable the **pg_cron** extension (Database › Extensions) *before* running migration 3 so applications close on schedule every 10 minutes. Without it, they still close whenever someone opens a dashboard or event page, and the database refuses late applications and bookings either way.
+
+In **Authentication › URL Configuration**, add `https://<your-domain>/reset-password` (and `http://localhost:5173/reset-password` for local dev) to the redirect allow-list so password-reset emails work.
 
 Then in **Storage**: make the `avatars` bucket public (the migration tries to), and add a policy on the private `documents` bucket letting authenticated users upload to their own `{user_id}/` folder and letting admins read everything (for the verification queue).
+
+## Push notifications (web app)
+
+The app is installable (manifest + service worker in `public/`). In-app alerts (bell + pop-ups) work out of the box over Supabase Realtime. To also deliver notifications to phones/desktops when the app is closed:
+
+1. Generate VAPID keys: `npx web-push generate-vapid-keys`
+2. Add the **public** key to `.env.local` as `VITE_VAPID_PUBLIC_KEY=...` and rebuild.
+3. Deploy the Edge Function and set its secrets:
+   ```bash
+   supabase functions deploy send-push
+   supabase secrets set VAPID_PUBLIC_KEY=... VAPID_PRIVATE_KEY=... VAPID_SUBJECT=mailto:hello@eventstaff.ng
+   ```
+4. In **Database › Webhooks**, create a webhook on `public.notifications` for **Insert**, type **Supabase Edge Functions**, function `send-push`, with the service-role auth header enabled.
+
+Users then switch on push from **Notifications** or **Account** settings. Push needs HTTPS (localhost is fine). On iPhone/iPad it works only after *Add to Home Screen*. The service worker is registered in production builds; set `VITE_ENABLE_SW=true` to test it under `npm run dev`.
+
+Keep the VAPID **private** key only in Supabase secrets — never in `.env.local` or the repo.
+
+## Admin accounts
 
 To create an admin, sign up normally, then run `update profiles set role = 'admin' where id = '<user id>';` in the SQL editor and sign in again. Admins land on `/admin`.
 

@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { NavLink, useParams } from 'react-router-dom'
 import BookModal from '../../components/BookModal'
+import { RatingSummary, RatingTag, ReviewList } from '../../components/Ratings'
 import Workspace from '../../components/Workspace'
-import { Avatar, Badge, CategoryIcon, EmptyState, Icon, PageHeader, Spinner, Stars, StatusBadge, VerifiedBadge } from '../../components/ui'
+import { Avatar, Badge, CategoryIcon, EmptyState, Icon, PageHeader, Spinner, StatusBadge, VerifiedBadge } from '../../components/ui'
 import { DOCUMENT_STATUS } from '../../lib/constants'
-import { formatDate, money, timeAgo } from '../../lib/format'
+import { formatDate, money } from '../../lib/format'
 import { useSession } from '../../lib/session'
 import { supabase } from '../../lib/supabase'
 import { must, useLoader } from '../../lib/useLoader'
@@ -19,7 +20,7 @@ async function load(id) {
     supabase.from('worker_skills').select('skill').eq('worker_id', staff.user_id),
     supabase.from('worker_documents').select('name,document_type,status').eq('worker_id', staff.user_id).eq('status', 'verified'),
     supabase.from('worker_experience').select('*').eq('worker_id', staff.user_id).order('start_date', { ascending: false }),
-    supabase.from('reviews').select('*').eq('reviewee_id', staff.user_id).order('created_at', { ascending: false }).limit(20),
+    supabase.from('reviews').select('*').eq('reviewee_id', staff.user_id).order('created_at', { ascending: false }).limit(200),
     supabase.from('profiles').select('avatar_url').eq('id', staff.user_id).maybeSingle(),
   ])
   return { staff, worker: worker.data, avatar: profile.data?.avatar_url, skills: (skills.data || []).map((s) => s.skill), docs: docs.data || [], experience: experience.data || [], reviews: reviews.data || [] }
@@ -37,10 +38,6 @@ export default function StaffProfile() {
 
   const { staff, worker, avatar, skills, docs, experience, reviews } = data
   const rate = worker?.daily_rate ? `${money(worker.daily_rate)}/day` : worker?.hourly_rate || staff.hourly_rate ? `${money(worker?.hourly_rate || staff.hourly_rate)}/hr` : null
-  const avg = (key) => {
-    const values = reviews.map((r) => Number(r[key])).filter(Boolean)
-    return values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0
-  }
 
   return <Workspace role="hirer">
     <PageHeader back={{ to: '/hirer/find-staff', label: 'Find staff' }} title="" />
@@ -49,7 +46,8 @@ export default function StaffProfile() {
       <div className="profile-hero-main">
         <div className="row wrap-gap"><h1>{staff.name}</h1>{staff.is_verified ? <VerifiedBadge /> : <Badge tone="warning">Verification pending</Badge>}</div>
         <p className="staff-role lg"><CategoryIcon category={staff.category} size={16} />{staff.category}</p>
-        <div className="meta"><Stars value={staff.rating} count={staff.review_count} /><span><Icon name="MapPin" size={14} />{[worker?.area, staff.location, staff.state].filter(Boolean).join(', ')}</span><span><Icon name="Briefcase" size={14} />{worker?.years_experience || staff.years_experience || 0} years experience</span>{worker?.languages?.length > 0 && <span><Icon name="Languages" size={14} />{worker.languages.join(', ')}</span>}</div>
+        <RatingTag rating={staff.rating} count={staff.review_count} />
+        <div className="meta"><span><Icon name="MapPin" size={14} />{[worker?.area, staff.location, staff.state].filter(Boolean).join(', ')}</span><span><Icon name="Briefcase" size={14} />{worker?.years_experience || staff.years_experience || 0} years experience</span>{worker?.languages?.length > 0 && <span><Icon name="Languages" size={14} />{worker.languages.join(', ')}</span>}</div>
       </div>
       <div className="profile-hero-cta">
         {rate && <div className="rate"><span>Typical rate</span><strong>{rate}</strong></div>}
@@ -77,14 +75,9 @@ export default function StaffProfile() {
         </section>
 
         <section className="card card-pad">
-          <h2 className="card-title">Reviews {reviews.length > 0 && <span className="muted">({reviews.length})</span>}</h2>
-          {reviews.length ? <>
-            <div className="review-summary">
-              <div className="big-rating"><strong>{Number(staff.rating).toFixed(1)}</strong><Stars value={staff.rating} /><span className="muted small">{staff.review_count} reviews</span></div>
-              <div className="sub-ratings">{[['punctuality', 'Punctuality'], ['professionalism', 'Professionalism'], ['communication', 'Communication'], ['quality', 'Quality of work']].map(([key, label]) => avg(key) ? <div key={key} className="weight-row"><span>{label}</span><div className="progress"><div className="progress-bar" style={{ width: `${(avg(key) / 5) * 100}%` }} /></div><strong>{avg(key).toFixed(1)}</strong></div> : null)}</div>
-            </div>
-            <ul className="review-list">{reviews.map((review) => <li key={review.id}><div className="row between"><Stars value={review.rating} /><span className="muted small">{timeAgo(review.created_at)}</span></div>{review.body && <p>{review.body}</p>}</li>)}</ul>
-          </> : <p className="muted">No reviews yet. Be the first to book {staff.name.split(' ')[0]}.</p>}
+          <h2 className="card-title">Ratings & reviews</h2>
+          <RatingSummary reviews={reviews} rating={staff.rating} count={staff.review_count} />
+          {reviews.length ? <ReviewList reviews={reviews} /> : <p className="muted">No reviews yet. Be the first to book {staff.name.split(' ')[0]}.</p>}
         </section>
       </div>
 

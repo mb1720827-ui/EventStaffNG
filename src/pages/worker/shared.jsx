@@ -12,6 +12,7 @@ export function JobCard({ job, applied }) {
       {job.matchScore != null && <MatchPill score={job.matchScore} />}
     </div>
     <h3>{job.events?.event_name || job.title.split(' — ')[0]}</h3>
+    {job.role_title && <span className="muted small">Role: {job.role_title}</span>}
     <ul className="job-facts">
       <li><Icon name="CalendarDays" size={15} />{formatDate(job.event_date)}</li>
       <li><Icon name="Clock" size={15} />{timeRange(job.start_time, job.end_time)}</li>
@@ -40,4 +41,4 @@ export function OfferActions({ booking, onDone }) {
   </div>
 }
 
-export const BOOKING_SELECT = '*, events(event_name,event_type,event_date,start_time,end_time,location,instructions), job_posts(title,category,description), hirer:profiles!bookings_hirer_id_fkey(full_name,phone)'
+export const BOOKING_SELECT = '*, events(event_name,event_type,event_date,start_time,end_time,location,instructions), job_posts(title,category,role_title,description), hirer:profiles!bookings_hirer_id_fkey(full_name,phone)'

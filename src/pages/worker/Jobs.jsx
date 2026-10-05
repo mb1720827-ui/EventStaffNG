@@ -3,6 +3,7 @@ import { NavLink, useSearchParams } from 'react-router-dom'
 import Workspace from '../../components/Workspace'
 import { Alert, CategoryIcon, EmptyState, Icon, PageHeader, Spinner, Tabs } from '../../components/ui'
 import { CATEGORY_TITLES, LAUNCH_STATES } from '../../lib/constants'
+import { hasStarted } from '../../lib/format'
 import { MIN_MATCH_THRESHOLD, scoreJobForWorker } from '../../lib/matching'
 import { useSession } from '../../lib/session'
 import { supabase } from '../../lib/supabase'
@@ -22,13 +23,13 @@ export default function Jobs() {
   const { data, loading, error } = useLoader(async () => {
     const [ctx, jobs, apps] = await Promise.all([
       loadWorkerContext(session.user.id),
-      supabase.from('job_posts').select('*, events(event_name,event_type)').eq('status', 'open').gte('event_date', new Date().toISOString().slice(0, 10)).order('event_date'),
+      supabase.from('job_posts').select('*, events(event_name,event_type)').eq('status', 'open').not('hirer_id', 'is', null).gte('event_date', new Date().toISOString().slice(0, 10)).order('event_date'),
       supabase.from('job_applications').select('job_id').eq('worker_id', session.user.id),
     ])
     return {
       worker: ctx.worker,
       applied: new Set(must(apps).map((a) => a.job_id)),
-      jobs: must(jobs).filter((job) => job.hirer_id !== session.user.id).map((job) => ({ ...job, matchScore: scoreJobForWorker(job, ctx.worker).score })),
+      jobs: must(jobs).filter((job) => job.hirer_id !== session.user.id && !hasStarted(job)).map((job) => ({ ...job, matchScore: scoreJobForWorker(job, ctx.worker).score })),
     }
   }, [session])
 

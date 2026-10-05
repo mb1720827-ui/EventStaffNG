@@ -1,37 +1,43 @@
+import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
+import ReviewModal from '../../components/ReviewModal'
 import Workspace from '../../components/Workspace'
 import { Avatar, EmptyState, Icon, Spinner, Stat, StatusBadge } from '../../components/ui'
 import { BOOKING_STATUS } from '../../lib/constants'
-import { formatDate, isPast, money } from '../../lib/format'
+import { eventPhase, formatDate, isPast, money } from '../../lib/format'
 import { useSession } from '../../lib/session'
 import { supabase } from '../../lib/supabase'
 import { must, useLoader } from '../../lib/useLoader'
 import { EventCard } from './Events'
 
 async function load(userId) {
-  const [events, bookings, saved, org] = await Promise.all([
+  await supabase.rpc('close_started_events')
+  const [events, bookings, saved, org, reviews] = await Promise.all([
     supabase.from('events').select('*, job_posts(id,workers_required,status), bookings(id,status)').eq('hirer_id', userId).neq('status', 'cancelled').order('event_date'),
-    supabase.from('bookings').select('*, staff_profiles(name,category), events(event_name,event_date)').eq('hirer_id', userId).order('created_at', { ascending: false }),
+    supabase.from('bookings').select('*, staff_profiles(id,name,category,rating,review_count), events(id,event_name,event_date,start_time,end_time,status), job_posts(category,role_title)').eq('hirer_id', userId).order('created_at', { ascending: false }),
     supabase.from('saved_workers').select('id', { count: 'exact', head: true }).eq('hirer_id', userId),
     supabase.from('hirer_profiles').select('organization_name,organization_type').eq('user_id', userId).maybeSingle(),
+    supabase.from('reviews').select('booking_id').eq('reviewer_id', userId),
   ])
   const eventRows = must(events)
   const jobIds = eventRows.flatMap((e) => (e.job_posts || []).map((j) => j.id))
   const apps = jobIds.length ? must(await supabase.from('job_applications').select('id,job_id,worker_name,applied_at,status,job_posts(title,event_id)').in('job_id', jobIds).eq('status', 'Applied').order('applied_at', { ascending: false })) : []
-  return { events: eventRows, bookings: must(bookings), saved: saved.count || 0, org: org.data, apps }
+  return { events: eventRows, bookings: must(bookings), saved: saved.count || 0, org: org.data, apps, reviewed: new Set((reviews.data || []).map((r) => r.booking_id)) }
 }
 
 export default function HirerDashboard() {
   const { session, profile } = useSession()
-  const { data, loading } = useLoader(() => load(session.user.id), [session])
+  const { data, loading, reload } = useLoader(() => load(session.user.id), [session])
+  const [rating, setRating] = useState(null)
   const firstName = profile?.full_name?.split(' ')[0] || 'there'
 
   if (loading && !data) return <Workspace role="hirer"><Spinner /></Workspace>
-  const { events, bookings, saved, org, apps } = data
+  const { events, bookings, saved, org, apps, reviewed } = data
+  const toRate = bookings.filter((b) => b.status === 'completed' && !reviewed.has(b.id))
+  const toFinish = events.filter((e) => e.status !== 'completed' && eventPhase(e) === 'ended')
   const upcoming = events.filter((e) => !isPast(e.event_date) && e.status !== 'completed')
   const openRoles = upcoming.flatMap((e) => e.job_posts || []).filter((j) => j.status === 'open').length
   const confirmed = bookings.filter((b) => b.status === 'confirmed')
-  const toComplete = bookings.filter((b) => b.status === 'confirmed' && isPast(b.events?.event_date))
   const spend = bookings.filter((b) => ['confirmed', 'completed'].includes(b.status)).reduce((sum, b) => sum + Number(b.agreed_amount), 0)
 
   const checklist = [
@@ -76,11 +82,20 @@ export default function HirerDashboard() {
       </section>
 
       <div className="stack">
-        {toComplete.length > 0 && <section className="card attention">
+        {toRate.length > 0 && <section className="card attention">
+          <header className="card-head"><h2><Icon name="Star" size={18} />Rate your team</h2><span className="muted small">{toRate.length} waiting</span></header>
+          <ul className="feed">{toRate.slice(0, 5).map((b) => <li key={b.id}>
+            <Avatar name={b.staff_profiles?.name} size="sm" />
+            <div><strong>{b.staff_profiles?.name}</strong><span>{b.events?.event_name}</span></div>
+            <button className="btn btn-accent btn-sm" onClick={() => setRating(b)}>Rate</button>
+          </li>)}</ul>
+        </section>}
+
+        {toFinish.length > 0 && <section className="card attention">
           <header className="card-head"><h2><Icon name="CircleAlert" size={18} />Needs your attention</h2></header>
           <div className="card-body">
-            <p className="small">{toComplete.length} booking{toComplete.length === 1 ? '' : 's'} from past events {toComplete.length === 1 ? 'needs' : 'need'} to be marked complete so the professional gets paid.</p>
-            <NavLink to="/hirer/bookings?tab=confirmed" className="btn btn-accent btn-sm">Review bookings</NavLink>
+            <p className="small">{toFinish.length === 1 ? `${toFinish[0].event_name} has` : `${toFinish.length} events have`} ended. Confirm who worked so payouts are released, then rate your team.</p>
+            <NavLink to={`/hirer/events/${toFinish[0].id}`} className="btn btn-accent btn-sm">Complete {toFinish.length === 1 ? 'event' : 'next event'}</NavLink>
           </div>
         </section>}
 
@@ -107,5 +122,6 @@ export default function HirerDashboard() {
         </section>
       </div>
     </div>
+    <ReviewModal booking={rating} onClose={() => setRating(null)} onDone={() => { setRating(null); reload() }} />
   </Workspace>
 }

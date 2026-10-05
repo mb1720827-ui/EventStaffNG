@@ -1,7 +1,8 @@
 import { NavLink } from 'react-router-dom'
+import { RatingTag } from '../../components/Ratings'
 import Workspace from '../../components/Workspace'
 import { Alert, EmptyState, Icon, Progress, Spinner, Stat, VerifiedBadge } from '../../components/ui'
-import { formatDate, isPast, money, timeRange } from '../../lib/format'
+import { formatDate, hasStarted, isPast, money, timeRange } from '../../lib/format'
 import { MIN_MATCH_THRESHOLD, scoreJobForWorker } from '../../lib/matching'
 import { useSession } from '../../lib/session'
 import { supabase } from '../../lib/supabase'
@@ -10,15 +11,16 @@ import { loadWorkerContext } from '../../lib/workerContext'
 import { BOOKING_SELECT, JobCard, OfferActions } from './shared'
 
 async function load(userId) {
+  await supabase.rpc('close_started_events')
   const [ctx, jobs, apps, bookings, payments] = await Promise.all([
     loadWorkerContext(userId),
-    supabase.from('job_posts').select('*, events(event_name)').eq('status', 'open').gte('event_date', new Date().toISOString().slice(0, 10)).order('event_date').limit(200),
+    supabase.from('job_posts').select('*, events(event_name)').eq('status', 'open').not('hirer_id', 'is', null).gte('event_date', new Date().toISOString().slice(0, 10)).order('event_date').limit(200),
     supabase.from('job_applications').select('id,job_id,status').eq('worker_id', userId),
     supabase.from('bookings').select(BOOKING_SELECT).eq('worker_user_id', userId).order('created_at', { ascending: false }),
     supabase.from('payments').select('amount,status').eq('payee_id', userId),
   ])
   const appliedIds = new Set(must(apps).map((a) => a.job_id))
-  const scored = must(jobs).filter((job) => job.hirer_id !== userId)
+  const scored = must(jobs).filter((job) => job.hirer_id !== userId && !hasStarted(job))
     .map((job) => ({ ...job, matchScore: scoreJobForWorker(job, ctx.worker).score }))
     .sort((a, b) => b.matchScore - a.matchScore)
   return { ...ctx, jobs: scored, apps: must(apps), appliedIds, bookings: must(bookings), payments: must(payments) }
@@ -46,7 +48,7 @@ export default function WorkerDashboard() {
         <h1>Welcome back, {firstName}</h1>
         <p>{recommended.length ? `${recommended.length} open job${recommended.length === 1 ? '' : 's'} match your profile right now.` : 'Complete your profile to unlock better job matches.'}</p>
       </div>
-      {worker.is_verified ? <VerifiedBadge /> : null}
+      <div className="row wrap-gap">{worker.is_verified ? <VerifiedBadge /> : null}<RatingTag rating={staff?.rating} count={staff?.review_count} /></div>
     </section>
 
     {!staff?.is_verified && <div className={`verify-banner ${completion >= 100 ? 'review' : ''}`}>

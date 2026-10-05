@@ -132,6 +132,7 @@ export const EVENT_STATUS = {
   pending: { label: 'Pending', tone: 'warning' },
   matching: { label: 'Hiring', tone: 'info' },
   booked: { label: 'Fully booked', tone: 'success' },
+  in_progress: { label: 'In progress', tone: 'accent' },
   completed: { label: 'Completed', tone: 'neutral' },
   cancelled: { label: 'Cancelled', tone: 'danger' },
 }

@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { NavLink, useSearchParams } from 'react-router-dom'
 import BookModal from '../../components/BookModal'
+import { RatingTag } from '../../components/Ratings'
 import Workspace from '../../components/Workspace'
-import { Alert, Avatar, CategoryIcon, EmptyState, Icon, PageHeader, Spinner, Stars, VerifiedBadge } from '../../components/ui'
+import { Alert, Avatar, CategoryIcon, EmptyState, Icon, PageHeader, Spinner, VerifiedBadge } from '../../components/ui'
 import { CATEGORY_TITLES, LAUNCH_STATES } from '../../lib/constants'
 import { money } from '../../lib/format'
 import { useSession } from '../../lib/session'
@@ -28,7 +29,8 @@ export function StaffCard({ staff, saved, onSave, onBook }) {
     </div>
     <NavLink to={`/hirer/staff/${staff.id}`} className="staff-name">{staff.name}</NavLink>
     <div className="staff-role"><CategoryIcon category={staff.category} size={14} />{staff.category}</div>
-    <div className="meta"><Stars value={staff.rating} count={staff.review_count} /><span><Icon name="MapPin" size={13} />{staff.location}{staff.state ? `, ${staff.state}` : ''}</span></div>
+    <RatingTag rating={staff.rating} count={staff.review_count} size="sm" />
+    <div className="meta"><span><Icon name="MapPin" size={13} />{staff.location}{staff.state ? `, ${staff.state}` : ''}</span></div>
     {staff.is_verified && <VerifiedBadge compact />}
     <p className="staff-summary">{staff.summary || staff.bio || 'Verified EventStaff NG professional.'}</p>
     <div className="staff-foot">
@@ -50,7 +52,7 @@ export default function FindStaff() {
   const [sort, setSort] = useState('rating')
   const [booking, setBooking] = useState(null)
   const { saved, toggle } = useSaved(session.user.id)
-  const { data, loading, error } = useLoader(async () => must(await supabase.from('staff_profiles').select('*').eq('is_available', true).eq('is_verified', true).order('rating', { ascending: false })), [])
+  const { data, loading, error } = useLoader(async () => must(await supabase.from('staff_profiles').select('*').eq('is_available', true).eq('is_verified', true).not('user_id', 'is', null).order('rating', { ascending: false })), [])
 
   const setFilter = (key, value) => {
     const next = new URLSearchParams(params)
@@ -67,7 +69,7 @@ export default function FindStaff() {
         && (!state || `${staff.state || ''} ${staff.location}`.toLowerCase().includes(stateKey) || (stateKey === 'abuja' && /fct/i.test(staff.state || '')))
     })
     const sorters = {
-      rating: (a, b) => b.rating - a.rating || b.review_count - a.review_count,
+      rating: (a, b) => b.rating * Math.min(b.review_count, 5) - a.rating * Math.min(a.review_count, 5) || b.review_count - a.review_count,
       experience: (a, b) => (b.years_experience || 0) - (a.years_experience || 0),
       reviews: (a, b) => b.review_count - a.review_count,
     }

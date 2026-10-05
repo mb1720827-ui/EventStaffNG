@@ -3,7 +3,7 @@ import { NavLink, useParams } from 'react-router-dom'
 import Workspace from '../../components/Workspace'
 import { Alert, CategoryIcon, EmptyState, Field, Icon, MatchPill, Modal, PageHeader, Spinner, StatusBadge } from '../../components/ui'
 import { APPLICATION_STATUS } from '../../lib/constants'
-import { formatDate, hoursBetween, money, timeRange } from '../../lib/format'
+import { eventStart, formatDate, hasStarted, hoursBetween, money, timeRange, timeUntil } from '../../lib/format'
 import { scoreJobForWorker } from '../../lib/matching'
 import { useSession } from '../../lib/session'
 import { supabase } from '../../lib/supabase'
@@ -32,7 +32,9 @@ export default function JobDetail() {
 
   const { job, ctx, application, match } = data
   const hours = hoursBetween(job.start_time, job.end_time)
-  const canApply = job.status === 'open' && (!application || application.status === 'Withdrawn')
+  const started = hasStarted(job)
+  const closed = job.status !== 'open' || started
+  const canApply = !closed && (!application || application.status === 'Withdrawn')
   const profileMissing = !ctx.profile
 
   const apply = async (event) => {
@@ -62,13 +64,15 @@ export default function JobDetail() {
       <div className="job-hero-main">
         <div className="row wrap-gap"><CategoryIcon category={job.category} /><span className="muted">{job.category}</span>{job.events?.event_type && <span className="muted">· {job.events.event_type}</span>}</div>
         <h1>{job.events?.event_name || job.title}</h1>
+        {job.role_title && <p className="staff-role lg">Role: {job.role_title}</p>}
         <div className="meta lg"><span><Icon name="CalendarDays" size={16} />{formatDate(job.event_date)}</span><span><Icon name="Clock" size={16} />{timeRange(job.start_time, job.end_time)} ({hours}h)</span><span><Icon name="MapPin" size={16} />{job.location}</span></div>
       </div>
       <div className="job-hero-side">
         <div className="rate"><span>Pay per person</span><strong>{money(job.budget)}</strong>{hours > 0 && <span className="muted small">≈ {money(job.budget / hours)}/hour</span>}</div>
         {application && application.status !== 'Withdrawn'
           ? <><StatusBadge map={APPLICATION_STATUS} value={application.status} />{['Applied', 'Shortlisted'].includes(application.status) && <button className="btn btn-ghost btn-sm" onClick={withdraw}>Withdraw</button>}</>
-          : canApply && <button className="btn btn-primary btn-lg" onClick={() => setApplyOpen(true)}>Apply now</button>}
+          : canApply ? <><button className="btn btn-primary btn-lg" onClick={() => setApplyOpen(true)}>Apply now</button><span className="muted small center-text">Applications close in {timeUntil(eventStart(job.event_date, job.start_time))}</span></>
+          : <div className="closed-note"><Icon name="Lock" size={16} />{started ? 'This event has started — applications are closed.' : job.status === 'filled' ? 'All positions have been filled.' : 'The client has closed applications.'}</div>}
       </div>
     </section>
 
@@ -76,7 +80,8 @@ export default function JobDetail() {
       <div className="stack">
         <section className="card card-pad">
           <h2 className="card-title">About this job</h2>
-          {job.description ? job.description.split('\n\n').map((para, i) => <p key={i}>{para}</p>) : <p className="muted">The client hasn't added specific instructions yet.</p>}
+          {job.description ? job.description.split('\n\n').map((para, i) => <p key={i}>{para}</p>) : <p className="muted">The client hasn't added role-specific instructions.</p>}
+          {job.events?.instructions && <p className="note"><Icon name="StickyNote" size={16} />{job.events.instructions}</p>}
           <dl className="facts">
             <div><dt>Positions</dt><dd>{job.workers_required}</dd></div>
             {job.events?.guest_count && <div><dt>Guests</dt><dd>{job.events.guest_count}</dd></div>}

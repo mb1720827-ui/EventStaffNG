@@ -166,11 +166,12 @@ export function AdminUsers() {
 export function AdminBookings() {
   const [tab, setTab] = useState('payouts')
   const { data, loading, reload } = useLoader(async () => {
-    const [payments, bookings] = await Promise.all([
+    const [payments, bookings, disputes] = await Promise.all([
       supabase.from('payments').select('*, bookings(events(event_name,event_date), staff_profiles(name))').order('created_at', { ascending: false }),
       supabase.from('bookings').select('*, events(event_name,event_date), staff_profiles(name,category)').order('created_at', { ascending: false }).limit(200),
+      supabase.from('disputes').select('*, bookings(agreed_amount, events(event_name,event_date), staff_profiles(name))').order('created_at', { ascending: false }),
     ])
-    return { payments: must(payments), bookings: must(bookings) }
+    return { payments: must(payments), bookings: must(bookings), disputes: must(disputes) }
   }, [])
   const markPaid = async (payment) => {
     const reference = window.prompt('Transfer reference (optional)') ?? null
@@ -179,13 +180,22 @@ export function AdminBookings() {
   }
   return <Workspace role="admin">
     <PageHeader eyebrow="Finance" title="Bookings & payouts" />
-    <Tabs value={tab} onChange={setTab} tabs={[['payouts', 'Payouts', data?.payments.filter((p) => p.status === 'pending').length], ['bookings', 'All bookings', data?.bookings.length]]} />
-    {loading ? <Spinner /> : tab === 'payouts' ? <div className="card table-card">
+    <Tabs value={tab} onChange={setTab} tabs={[['payouts', 'Payouts', data?.payments.filter((p) => p.status === 'pending').length], ['bookings', 'All bookings', data?.bookings.length], ['disputes', 'Disputes', data?.disputes.filter((d) => ['open', 'investigating'].includes(d.status)).length]]} />
+    {loading ? <Spinner /> : tab === 'disputes' ? <div className="stack">
+      {data.disputes.map((d) => <article className="card card-pad" key={d.id}>
+        <div className="row between wrap-gap">
+          <div><strong>{d.bookings?.staff_profiles?.name}</strong><div className="meta"><span>{d.bookings?.events?.event_name}</span><span>{formatDate(d.bookings?.events?.event_date)}</span><span>{money(d.bookings?.agreed_amount)}</span><span className="muted">{timeAgo(d.created_at)}</span></div></div>
+          <select value={d.status} aria-label="Dispute status" onChange={async (e) => { await supabase.from('disputes').update({ status: e.target.value }).eq('id', d.id); reload() }}><option value="open">Open</option><option value="investigating">Investigating</option><option value="resolved">Resolved</option><option value="closed">Closed</option></select>
+        </div>
+        <p className="enquiry-body">{d.reason}</p>
+      </article>)}
+      {!data.disputes.length && <EmptyState icon="LifeBuoy" title="No disputes">Problems reported by professionals or hirers appear here.</EmptyState>}
+    </div> : tab === 'payouts' ? <div className="card table-card">
       {data.payments.map((p) => <div className="booking-row" key={p.id}>
         <span className="stat-icon tone-info"><Icon name="Banknote" size={18} /></span>
         <div className="booking-main"><strong>{p.bookings?.staff_profiles?.name}</strong><div className="meta"><span>{p.bookings?.events?.event_name}</span><span>{formatDate(p.bookings?.events?.event_date)}</span></div></div>
         <div className="booking-amount"><strong>{money(p.amount)}</strong><span className="muted small">fee {money(p.platform_fee)}</span></div>
-        <div className="booking-actions"><StatusBadge map={PAYMENT_STATUS} value={p.status} />{p.status === 'pending' && <button className="btn btn-primary btn-sm" onClick={() => markPaid(p)}>Mark paid</button>}</div>
+        <div className="booking-actions"><StatusBadge map={PAYMENT_STATUS} value={p.status} />{p.received_at && <Badge tone="success" icon="CircleCheck">Receipt confirmed</Badge>}{p.status === 'pending' && <button className="btn btn-primary btn-sm" onClick={() => markPaid(p)}>Mark paid</button>}</div>
       </div>)}
       {!data.payments.length && <EmptyState icon="Banknote" title="No payouts yet">Payouts are created when hirers mark bookings complete.</EmptyState>}
     </div> : <div className="card table-card">

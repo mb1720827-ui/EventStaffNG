@@ -48,3 +48,40 @@ export const initials = (name = '') => name.trim().split(/\s+/).slice(0, 2).map(
 export const isPast = (date) => date && new Date(`${date}T23:59:59`) < new Date()
 
 export const splitList = (value) => value.split(',').map((item) => item.trim()).filter(Boolean)
+
+// Event times are entered in Nigerian time (WAT, UTC+1, no daylight saving).
+export function eventStart(date, time) {
+  if (!date) return null
+  return new Date(`${date}T${(time || '00:00').slice(0, 5)}:00+01:00`)
+}
+
+export function eventEnd(date, start, end) {
+  const begin = eventStart(date, start)
+  if (!begin) return null
+  const finish = eventStart(date, end || start)
+  // Ends at or before it starts → it runs past midnight.
+  return finish <= begin ? new Date(finish.getTime() + 86400000) : finish
+}
+
+// 'upcoming' | 'live' | 'ended'
+export function eventPhase(event) {
+  const now = Date.now()
+  const start = eventStart(event.event_date, event.start_time)
+  const end = eventEnd(event.event_date, event.start_time, event.end_time)
+  if (!start) return 'upcoming'
+  if (now < start.getTime()) return 'upcoming'
+  return now < end.getTime() ? 'live' : 'ended'
+}
+
+export const hasStarted = (job) => eventPhase(job) !== 'upcoming'
+
+export function timeUntil(target) {
+  const ms = new Date(target).getTime() - Date.now()
+  if (ms <= 0) return 'now'
+  const minutes = Math.round(ms / 60000)
+  if (minutes < 60) return `${minutes} min`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 48) return `${hours} hour${hours === 1 ? '' : 's'}${minutes % 60 && hours < 6 ? ` ${minutes % 60} min` : ''}`
+  const days = Math.floor(hours / 24)
+  return `${days} day${days === 1 ? '' : 's'}`
+}

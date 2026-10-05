@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { supabase, uploadFile, publicUrl } from './lib/supabase'
 import {
   AVAILABLE_CATEGORIES,
@@ -21,6 +22,9 @@ const STEPS = [
 const blankExperience = { title: '', employer: '', startDate: '', endDate: '', isCurrent: false, description: '' }
 
 export default function WorkerProfileV2({ session, profile, Workspace }) {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const isEditMode = new URLSearchParams(location.search).get('edit') === '1'
   const [step, setStep] = useState(() => {
     const saved = localStorage.getItem(`worker_profile_step_${session?.user?.id}`)
     return saved ? Number(saved) : 0
@@ -65,6 +69,12 @@ export default function WorkerProfileV2({ session, profile, Workspace }) {
   const queueAutosave = () => {
     if (saveTimeout.current) clearTimeout(saveTimeout.current)
     saveTimeout.current = setTimeout(() => { save(new Event('submit')) }, 1500)
+  }
+
+  const firstIncompleteStep = (from) => {
+    let idx = from
+    while (idx < STEPS.length && computeStepDone(STEPS[idx].key, data, docItems)) idx++
+    return Math.min(idx, STEPS.length - 1)
   }
 
   useEffect(() => {
@@ -117,12 +127,6 @@ export default function WorkerProfileV2({ session, profile, Workspace }) {
     }
     load()
   }, [session])
-
-  const firstIncompleteStep = (from) => {
-    let idx = from
-    while (idx < STEPS.length && computeStepDone(STEPS[idx].key, data, docItems)) idx++
-    return Math.min(idx, STEPS.length - 1)
-  }
 
   useEffect(() => {
     if (!session) return
@@ -183,15 +187,21 @@ export default function WorkerProfileV2({ session, profile, Workspace }) {
     })
 
     const completion = computeCompletion(data, docItems, isWorkerVerified(workerRef(data, docItems)))
-    const { error: workerError } = await supabase.from('worker_profiles').upsert({
+    const workerUpsert = {
       user_id: session.user.id, phone: data.phone, state: data.state, city: data.city,
       area: data.area, address: data.address, bio: data.bio,
-      primary_profession: data.primaryProfession, years_experience: Number(data.yearsExperience) || 0,
+      years_experience: Number(data.yearsExperience) || 0,
       hourly_rate: Number(data.hourlyRate) || null, daily_rate: Number(data.dailyRate) || null,
       portfolio_url: data.portfolioUrl || null, languages: data.languages,
       minimum_rate: Number(data.minimumPay) || null, preferred_rate: Number(data.preferredPay) || null,
       profile_completion: completion,
-    })
+    }
+    if (data.primaryProfession && AVAILABLE_CATEGORIES.includes(data.primaryProfession)) {
+      workerUpsert.primary_profession = data.primaryProfession
+    } else {
+      workerUpsert.primary_profession = null
+    }
+    const { error: workerError } = await supabase.from('worker_profiles').upsert(workerUpsert)
 
     const { error: skillError } = await supabase.from('worker_skills').delete().eq('worker_id', session.user.id)
     if (!skillError) {
@@ -253,6 +263,12 @@ export default function WorkerProfileV2({ session, profile, Workspace }) {
     setMessage(msg)
     setLoading(false)
     setSaving(false)
+    if (isEditMode) {
+      const allDone = STEPS.every((item) => computeStepDone(item.key, data, docItems))
+      if (allDone) {
+        navigate('/worker/profile/complete', { replace: true })
+      }
+    }
   }
 
   const goNext = async (event) => {
@@ -274,26 +290,79 @@ export default function WorkerProfileV2({ session, profile, Workspace }) {
   const jumpToStep = (index) => {
     const target = firstIncompleteStep(index)
     setStep(target)
-    localStorage.setItem(`worker_profile_step_${session.user.id}`, String(target))
+    localStorage.setItem(`worker_profile_step_${session?.user?.id}`, String(target))
   }
-  if (!session) return null
-
   const current = STEPS[step]
   const verified = isWorkerVerified(workerRef(data, docItems))
   const workerObj = workerRef(data, docItems)
+  const completedSteps = STEPS.filter((item) => computeStepDone(item.key, data, docItems))
+  const completionPercent = computeCompletion(data, docItems, verified)
+  const currentStage = completedSteps.length
+  const totalStages = STEPS.length
+
+  useEffect(() => {
+    if (session && currentStage === totalStages && !isEditMode) {
+      navigate('/worker/profile/complete', { replace: true })
+    }
+  }, [currentStage, totalStages, navigate, session, isEditMode])
+
+  if (!session) return null
 
   return <Workspace role="worker">
     <section className="page-heading">
       <span className="eyebrow">Professional profile</span>
+      {isEditMode && <NavLink to="/worker/profile/complete" style={{ fontSize: '0.8em', color: '#64748b' }}>← Back to profile summary</NavLink>}
       <h2>{profile?.full_name || 'Your profile'}</h2>
       <p>Build your professional profile to be matched with relevant jobs. Your progress is saved automatically and persists when you leave the page, close your browser, or reload &mdash; so you never have to repeat the registration steps.</p>
-      <div className="profile-completion"><div className="profile-completion-bar"><div className="profile-completion-fill" style={{ width: `${computeCompletion(data, docItems, verified)}%` }} /></div>
-        <span className="mini-label" style={{ marginTop: 6, display: 'inline-block' }}>{computeCompletion(data, docItems, verified)}% complete</span>
-        {verified && <span className="verification-badge" style={{ marginLeft: 12 }}>✓ EventStaff NG Verified Professional</span>}
+      <div className="profile-completion">
+        <div className="progress-steps-container">
+          <div className="progress-steps-line" style={{ width: `${(currentStage / totalStages) * 100}%` }} />
+          <div className="progress-steps-dots">
+            {STEPS.map((item, index) => {
+              const done = computeStepDone(item.key, data, docItems)
+              const isCurrent = index === step
+              const filled = currentStage >= index + 1
+              return (
+                <button
+                  type="button"
+                  key={item.key}
+                  className={`progress-step-dot ${done ? 'done' : ''} ${isCurrent ? 'current' : ''} ${filled ? 'filled' : ''}`}
+                  onClick={() => jumpToStep(index)}
+                  style={{ left: `${(index / (totalStages - 1)) * 100}%` }}
+                  title={item.label}
+                >
+                  <span className="progress-step-number">{index + 1}</span>
+                  <span className="progress-step-label">{item.label}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+        <div className="progress-summary">
+          <span className="mini-label">{currentStage} of {totalStages} stages complete &mdash; {completionPercent}% profile strength</span>
+          {verified && <span className="verification-badge">✓ EventStaff NG Verified Professional</span>}
+        </div>
       </div>
     </section>
 
-    <div className="stepper">      {STEPS.map((item, index) => <button type="button" key={item.key} className={`step-tab ${index === step ? 'active' : ''} ${computeStepDone(item.key, data, docItems) ? 'done' : ''}`} onClick={() => jumpToStep(index)}>{index + 1} {item.label}</button>)}</div>
+    <div className="stepper">
+      {STEPS.map((item, index) => {
+        const done = computeStepDone(item.key, data, docItems)
+        const active = index === step
+        return (
+          <button
+            type="button"
+            key={item.key}
+            className={`step-tab ${active ? 'active' : ''} ${done ? 'done' : ''}`}
+            onClick={() => jumpToStep(index)}
+            disabled={!done && index > 0 && !computeStepDone(STEPS[index - 1].key, data, docItems)}
+          >
+            {index + 1} {item.label}
+            {done && <span className="step-status" style={{ fontSize: '0.7em', marginLeft: 4 }}>&#10003;</span>}
+          </button>
+        )
+      })}
+    </div>
 
     <form className="event-form wide-form" onSubmit={save}>
       {current.key === 'personal' && renderPersonal()}
@@ -510,7 +579,7 @@ function computeStepDone(key, data, docItems) {
     case 'personal': return !!(data.fullName && data.phone && data.state && data.city && data.bio)
     case 'profession': return !!data.primaryProfession && !!data.yearsExperience
     case 'experience': return true
-    case 'documents': return verifyDocRequirement(data, docItems)
+     case 'documents': return !!data.primaryProfession && !!data.documents.length
     case 'preferences': return !!data.preferredCategories.length && !!data.preferredEventTypes.length
     case 'location': return !!data.preferredStates.length
     case 'availability': return !!data.workTypes.length || !!data.availableDates.length

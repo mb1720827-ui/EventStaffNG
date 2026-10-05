@@ -1406,6 +1406,7 @@ button:hover,
   background: rgba(148, 163, 184, 0.2);
   border-radius: 999px;
   overflow: hidden;
+  position: relative;
 }
 
 .profile-completion-fill {
@@ -1417,6 +1418,358 @@ button:hover,
 .profile-completion .mini-label {
   font-weight: 700;
   color: #334155;
+}
+
+.profile-completion {
+  margin-top: 16px;
+}
+
+.progress-steps-container {
+  position: relative;
+  height: 40px;
+  width: 100%;
+  margin: 20px 0;
+}
+
+.progress-steps-line {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 8px;
+  background: linear-gradient(90, #3b82f6, #10b845);
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.progress-steps-dots {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: space-between;
+}
+
+.progress-step-dot {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.2s ease;
+}
+
+.progress-step-dot:hover {
+  transform: translateY(-50%) scale(1.1);
+}
+
+.progress-step-number {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.3);
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7em;
+  font-weight: 700;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  margin-bottom: 4px;
+}
+
+.progress-step-dot.done .progress-step-number {
+  background: #10b845;
+  color: white;
+  border-color: #10b845;
+}
+
+.progress-step-dot.current .progress-step-number {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+}
+
+.progress-step-label {
+  font-size: 0.65em;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.progress-step-dot.done .progress-step-label {
+  color: #10b845;
+}
+
+.progress-step-dot.current .progress-step-label {
+  color: #3b82f6;
+  font-weight: 700;
+}
+
+.progress-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.verification-badge {
+  background: #dcfce7;
+  color: #166534;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 0.8em;
+  font-weight: 600;
+}
+
+.profile-complete-section {
+  padding: 24px 0;
+}
+
+.completion-hero {
+  text-align: center;
+  padding: 32px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  margin-bottom: 24px;
+}
+
+.completion-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #10b845);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  overflow: hidden;
+}
+
+.completion-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.completion-avatar span {
+  color: white;
+  font-size: 2.5em;
+  font-weight: 700;
+}
+
+.completion-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #dcfce7;
+  color: #166534;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.badge-check {
+  font-size: 1.2em;
+}
+
+.completion-subtitle {
+  font-size: 1.05em;
+  color: #64748b;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.completion-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.profile-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.profile-card {
+  background: white;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.profile-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  background: rgba(248, 250, 252, 0.8);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.profile-card-head .profile-card-icon {
+  font-size: 1.2em;
+}
+
+.profile-card-head h2 {
+  font-size: 1em;
+  margin: 0;
+}
+
+.profile-card-body {
+  padding: 16px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  color: #64748b;
+  font-size: 0.85em;
+}
+
+.info-value {
+  color: #1e293b;
+  font-weight: 500;
+  text-align: right;
+  max-width: 60%;
+}
+
+.info-value.mono {
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+.text-muted {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.experience-item,
+.document-item,
+.availability-item {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.experience-item:last-child,
+.document-item:last-child,
+.availability-item:last-child {
+  border-bottom: none;
+}
+
+.experience-item strong,
+.document-item strong {
+  display: block;
+  font-size: 0.95em;
+  color: #1e293b;
+}
+
+.document-item .status,
+.availability-item .status {
+  font-size: 0.75em;
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.status.verified {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status.submitted {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.status.rejected {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.status.neutral {
+  background: rgba(148, 163, 184, 0.2);
+  color: #475569;
+}
+
+.completion-footer {
+  text-align: center;
+  margin-top: 24px;
+}
+
+.review-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 24px;
+  min-height: 500px;
+}
+
+.review-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.review-tab {
+  background: white;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.review-tab:hover {
+  background: rgba(248, 250, 252, 0.8);
+}
+
+.review-tab.active {
+  background: linear-gradient(135deg, #3b82f6, #10b845);
+  color: white;
+  border-color: transparent;
+}
+
+.review-content .event-form {
+  background: white;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.experience-editor .two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
 }
 
 .stepper {

@@ -1,13 +1,4 @@
-# React + Vite
-
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## EventStaff NG
+# EventStaff NG
 
 React + Vite frontend for an event staffing marketplace, backed by Supabase.
 
@@ -29,7 +20,14 @@ npm run dev
 
 ## Supabase setup
 
-Open the Supabase Dashboard SQL Editor and run [`supabase/schema.sql`](supabase/schema.sql). It creates the tables, indexes, validation rules, starter categories, and row-level security policies used by the app.
+In the Supabase Dashboard SQL Editor, run these in order (both are safe to re-run):
+
+1. [`supabase/schema.sql`](supabase/schema.sql) — tables, seed categories, base policies.
+2. [`supabase/migrations/20261005_marketplace_loop.sql`](supabase/migrations/20261005_marketplace_loop.sql) — enables RLS on every table, the hire → book → complete → payout → review loop, admin-only verification, and server-side notifications.
+
+Then in **Storage**: make the `avatars` bucket public (the migration tries to), and add a policy on the private `documents` bucket letting authenticated users upload to their own `{user_id}/` folder and letting admins read everything (for the verification queue).
+
+To create an admin, sign up normally, then run `update profiles set role = 'admin' where id = '<user id>';` in the SQL editor and sign in again. Admins land on `/admin`.
 
 | Table | Stores |
 | --- | --- |
@@ -91,10 +89,3 @@ Before production, replace the temporary public application insert policy in the
 ```bash
 npm run build
 ```
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.

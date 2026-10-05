@@ -4,6 +4,7 @@ import { Logo } from '../../components/PublicLayout'
 import { Alert, Field, Icon } from '../../components/ui'
 import { LAUNCH_STATES } from '../../lib/constants'
 import { useSession } from '../../lib/session'
+import { absoluteUrl } from '../../lib/format'
 import { supabase } from '../../lib/supabase'
 
 const INTENT_KEY = 'eventstaff_intent'
@@ -96,7 +97,7 @@ export function SignUp() {
     const { data, error } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
-      options: { data: { full_name: form.fullName, phone: form.phone, role, state: form.state }, emailRedirectTo: `${window.location.origin}/sign-in` },
+      options: { data: { full_name: form.fullName, phone: form.phone, role, state: form.state }, emailRedirectTo: absoluteUrl('sign-in') },
     })
     if (error) return setStatus({ busy: false, error: error.message, info: '' })
     if (!data.session) return setStatus({ busy: false, error: '', info: `Almost there — we sent a confirmation link to ${form.email}. Open it, then sign in.` })
@@ -153,7 +154,7 @@ export function SignIn() {
 
   const reset = async () => {
     if (!form.email) return setStatus({ busy: false, error: 'Enter your email first, then click "Forgot password".', info: '' })
-    const { error } = await supabase.auth.resetPasswordForEmail(form.email, { redirectTo: `${window.location.origin}/reset-password` })
+    const { error } = await supabase.auth.resetPasswordForEmail(form.email, { redirectTo: absoluteUrl('reset-password') })
     setStatus({ busy: false, error: error?.message || '', info: error ? '' : `Password reset link sent to ${form.email}.` })
   }
 

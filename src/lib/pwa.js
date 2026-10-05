@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { appUrl } from './format'
 import { supabase } from './supabase'
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY
@@ -16,7 +17,7 @@ function urlBase64ToUint8Array(base64) {
 
 async function registration() {
   if (!pushSupported()) return null
-  return (await navigator.serviceWorker.getRegistration()) || navigator.serviceWorker.register('/sw.js')
+  return (await navigator.serviceWorker.getRegistration()) || navigator.serviceWorker.register(appUrl('sw.js'), { scope: appUrl() })
 }
 
 // 'unsupported' | 'unconfigured' | 'denied' | 'enabled' | 'disabled'
@@ -53,7 +54,7 @@ export async function disablePush() {
 export async function showLocalNotification(item) {
   if (!pushSupported() || Notification.permission !== 'granted') return
   const reg = await navigator.serviceWorker.getRegistration()
-  const options = { body: item.body, icon: '/icons/icon-192.png', badge: '/icons/icon-192.png', tag: item.id, data: { url: item.link || '/' } }
+  const options = { body: item.body, icon: appUrl('icons/icon-192.png'), badge: appUrl('icons/icon-192.png'), tag: item.id, data: { url: item.link || '/' } }
   if (reg) reg.showNotification(item.title, options)
   else new Notification(item.title, options)
 }

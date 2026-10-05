@@ -44,7 +44,7 @@ const admin = (element) => <Gate role="admin">{element}</Gate>
 
 export default function App() {
   return <SessionProvider>
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Suspense fallback={<div className="screen-center"><Spinner /></div>}>
       <Routes>
         <Route path="/" element={<Home />} />

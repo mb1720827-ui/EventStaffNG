@@ -34,8 +34,9 @@ const ROLE_LABEL = { hirer: 'Hirer', worker: 'Professional', admin: 'Admin' }
 
 export function Gate({ role, children }) {
   const { session, profile, initialized } = useSession()
+  const location = useLocation()
   if (!initialized) return <div className="screen-center"><Spinner label="Loading your workspace…" /></div>
-  if (!session) return <Navigate to="/sign-in" replace state={{ from: window.location.pathname }} />
+  if (!session) return <Navigate to="/sign-in" replace state={{ from: location.pathname }} />
   if (!profile) return <div className="screen-center"><Spinner label="Preparing your account…" /></div>
   if (profile.role !== role) return <Navigate to={profile.role === 'admin' ? '/admin' : `/${profile.role}/dashboard`} replace />
   return children

@@ -1,3 +1,8 @@
+// Path the app is served from ("/" locally, "/EventStaffNG/" on GitHub Pages).
+export const BASE = import.meta.env.BASE_URL
+export const appUrl = (path = '') => `${BASE}${String(path).replace(/^\//, '')}`
+export const absoluteUrl = (path) => new URL(appUrl(path), window.location.origin).href
+
 export const money = (value) => `₦${Number(value || 0).toLocaleString('en-NG', { maximumFractionDigits: 0 })}`
 
 export function formatDate(value, options = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) {

@@ -2,22 +2,22 @@
   "name": "EventStaff NG",
   "short_name": "EventStaff",
   "description": "Book verified event staff in Abuja and Lagos — or find event work as a professional.",
-  "id": "/",
-  "start_url": "/?source=pwa",
-  "scope": "/",
+  "id": "./",
+  "start_url": "./?source=pwa",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#f3f6f4",
   "theme_color": "#0b4a38",
   "categories": ["business", "productivity", "lifestyle"],
   "icons": [
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
-    { "name": "Post an event", "url": "/hirer/post-event", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Find jobs", "url": "/worker/jobs", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Notifications", "url": "/notifications", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+    { "name": "Post an event", "url": "./hirer/post-event", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Find jobs", "url": "./worker/jobs", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Notifications", "url": "./notifications", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
   ]
 }
